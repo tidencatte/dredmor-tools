@@ -8,6 +8,31 @@ SECONDARY_STATS = ["HITPOINTS", "SPELLPOINTS", "MELEE_POWER", "MAGIC_POWER",
 
 PRIMARY_STATS = ["BURLINESS", "SAGACITY", "NIMBLENESS", "CADDISHNESS", "STUBBORNNESS", "SAVVY"]
 
+def crafts(filename):
+	crafts = etree.parse(filename)
+
+	for craft in crafts.findall("craft"):
+		_craft = {}
+
+		for attrib in craft:
+			# TODO: make crafts that have varying outputs have a list of names to access
+			if (attrib.tag == "output"):
+				if (not _craft.has_key("output")):
+					_craft["output"] = []
+
+				_craft["output"].append(attrib.attrib)
+
+			if (attrib.tag == "input"):
+				if (not _craft.has_key("input")):
+					_craft["ingredients"] = []
+
+				_craft["ingredients"].append(attrib.attrib["name"])
+
+			if (attrib.tag == "tool"):
+				_craft["tool"] = attrib.attrib["tag"]
+
+		yield _craft
+
 def items(filename):
 	items = etree.parse(filename)
 	bufftypes = set(["primarybuff", "secondarybuff", "resistbuff", "damagebuff"])
@@ -19,6 +44,9 @@ def items(filename):
 		for attr in item:
 			attrib = attr.attrib
 			if (attr.tag in itemtypes):
+				# the categorization of items is a bit inconsistent
+				# armour has a subtype in the <armour> tag
+				# weapons (and other items?) have it in the <item> tag
 				if (attr.tag in ["armour", "weapon"]):
 					_item["type"] = attr.tag
 					# armour and weapon both have damage values
@@ -28,6 +56,9 @@ def items(filename):
 
 					if (attr.tag == "armour"):
 						_item["subtype"] = attrib["type"]
+
+				if (attr.tag == "food"):
+					_item["subtype"] = attrib.get("meat", None)
 
 			if (attr.tag in bufftypes):
 				if (not _item.has_key(attr.tag)):
