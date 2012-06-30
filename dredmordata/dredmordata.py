@@ -80,3 +80,19 @@ def items(filename):
 				_item[attr.tag] = attr.attrib["text"]
 
 		yield _item
+
+def monsters(filename):
+	monsters = etree.parse(filename)
+	
+	datum = set(["ai", "onhit", "stats", "damage", "secondarybuff",
+		"resistances", "info", "palette", "onhit"])
+
+	for mon in monsters.findall("monster"):
+		_monster = {}
+		
+		for mondata in mon:
+			if (mondata.tag in datum):
+				_monster[mondata.tag] = [mondata.attrib]
+
+		yield _monster
+
