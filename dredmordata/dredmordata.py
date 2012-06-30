@@ -11,25 +11,54 @@ SECONDARY_STATS = ["HITPOINTS", "SPELLPOINTS", "MELEE_POWER", "MAGIC_POWER",
 
 PRIMARY_STATS = ["BURLINESS", "SAGACITY", "NIMBLENESS", "CADDISHNESS", "STUBBORNNESS", "SAVVY"]
 
-def _dredwrap(fn):
-	"""Automatically decorates this module's functions with default parameters, platform-dependent."""
-	mach = platform.machine()
-	_os   = platform.system()
+class _dredwrap(object):
+	def __init__(self, fn):
+		self.fn = fn
+		
+		mach = platform.machine()
+		_os   = platform.system()
+			
+
+		if (mach == "AMD64"):
+			if (_os == "Windows"):
+				base_path = ("C:", "\Program Files (x86)", "steam\steamapps\common\dungeons of dredmor")
+
+		elif (mach == "i386"):
+			if (_os == "Windows"):
+				base_path = ("C:", "\Program Files (x86)", "steam\steamapps\common\dungeons of dredmor")
+
+		self.filename = {"crafts": "craftDB.xml",
+			"monsters": "monDB.xml",
+			"items": "itemDB.xml"}
+
+		self.base_path = base_path
+
+		# TODO: better handling of mods, alternate install paths
+		# XXX the above could be done with variable keyword args
+		self.fn.func_defaults = ("filename",
+			os.path.join(*itertools.chain(base_path, ("game", self.filename[fn.func_name]),)))
 	
-	if (mach == "AMD64"):
-		# XXX Does AMD64 also get reported on Intel processors?
-		if (_os == "Windows"):
-			base_path = ("C:", "\Program Files (x86)", "steam\steamapps\common\dungeons of dredmor")
 
-	filename = {"crafts": "craftDB.xml",
-		"monsters": "monDB.xml",
-		"items": "itemDB.xml"}
-	# TODO: better handling of mods, alternate install paths
+	def __call__(self, **miscargs):
+		# transform the default parameters before (re-)calling our decorated function
+		
+		# TODO: find a clean way of handling alternate steam install paths
+		# TODO: handle Desura/<other> installs
+		mod = None
 
-	fn.func_defaults = ("filename",
-		os.path.join(*itertools.chain(base_path, ("game", filename[fn.func_name]),)))
+		if (miscargs.has_key("mod")):
+			if (type(miscargs["mod"]) is int):
+				if (int(miscargs["mod"]) in (1,2)):
+					# DLCs should be referred to by their release order
+					# community mods are a different story...
+					mod = "expansion{0}/game".format((miscargs["mod"] if miscargs["mod"] > 1 else ""))
+		else:
+			mod = "game"
 
-	return fn
+		self.fn.func_defaults = ("filename",
+			os.path.join(*itertools.chain(self.base_path, (mod, self.filename[self.fn.func_name]))))
+
+		return self.fn()
 
 @_dredwrap
 def crafts(filename):
@@ -110,10 +139,11 @@ def monsters(filename):
 	monsters = etree.parse(filename)
 	
 	datum = set(["ai", "onhit", "stats", "damage", "secondarybuff",
-		"resistances", "info", "palette", "onhit"])
+		"resistances", "info", "palette"])
 
 	for mon in monsters.findall("monster"):
 		_monster = {}
+		# TODO: Monsters have variants. Parse those, too.
 		_monster["name"] = mon.attrib["name"]
 		for mondata in mon:
 			if (mondata.tag in datum):
