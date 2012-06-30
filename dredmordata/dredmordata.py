@@ -1,4 +1,7 @@
 import xml.etree.ElementTree as etree
+import platform
+import os.path
+import itertools
 
 SECONDARY_STATS = ["HITPOINTS", "SPELLPOINTS", "MELEE_POWER", "MAGIC_POWER",
 "CRITICAL", "HAYWIRE", "DODGE", "BLOCK", "COUNTER", "ENEMY_DODGE_REDUCTION",
@@ -8,6 +11,27 @@ SECONDARY_STATS = ["HITPOINTS", "SPELLPOINTS", "MELEE_POWER", "MAGIC_POWER",
 
 PRIMARY_STATS = ["BURLINESS", "SAGACITY", "NIMBLENESS", "CADDISHNESS", "STUBBORNNESS", "SAVVY"]
 
+def _dredwrap(fn):
+	"""Automatically decorates this module's functions with default parameters, platform-dependent."""
+	mach = platform.machine()
+	_os   = platform.system()
+	
+	if (mach == "AMD64"):
+		# XXX Does AMD64 also get reported on Intel processors?
+		if (_os == "Windows"):
+			base_path = ("C:", "\Program Files (x86)", "steam\steamapps\common\dungeons of dredmor")
+
+	filename = {"crafts": "craftDB.xml",
+		"monsters": "monDB.xml",
+		"items": "itemDB.xml"}
+	# TODO: better handling of mods, alternate install paths
+
+	fn.func_defaults = ("filename",
+		os.path.join(*itertools.chain(base_path, ("game", filename[fn.func_name]),)))
+
+	return fn
+
+@_dredwrap
 def crafts(filename):
 	crafts = etree.parse(filename)
 
@@ -32,7 +56,7 @@ def crafts(filename):
 				_craft["tool"] = attrib.attrib["tag"]
 
 		yield _craft
-
+@_dredwrap
 def items(filename):
 	items = etree.parse(filename)
 	bufftypes = set(["primarybuff", "secondarybuff", "resistbuff", "damagebuff"])
@@ -81,6 +105,7 @@ def items(filename):
 
 		yield _item
 
+@_dredwrap
 def monsters(filename):
 	monsters = etree.parse(filename)
 	
@@ -89,7 +114,7 @@ def monsters(filename):
 
 	for mon in monsters.findall("monster"):
 		_monster = {}
-		
+		_monster["name"] = mon.attrib["name"]
 		for mondata in mon:
 			if (mondata.tag in datum):
 				_monster[mondata.tag] = [mondata.attrib]
