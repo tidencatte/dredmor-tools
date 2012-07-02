@@ -61,6 +61,9 @@ class _dredwrap(object):
 
 		return self.fn()
 
+# TODO: make any function that returns a dict with a stats list be accessible
+#		regardless of the capitalization of the key
+
 @_dredwrap
 def crafts(filename):
 	crafts = etree.parse(filename)
