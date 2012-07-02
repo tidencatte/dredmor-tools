@@ -17,7 +17,6 @@ class _dredwrap(object):
 		
 		mach = platform.machine()
 		_os   = platform.system()
-			
 
 		if (mach == "AMD64"):
 			if (_os == "Windows"):
@@ -137,17 +136,21 @@ def items(filename):
 @_dredwrap
 def monsters(filename):
 	monsters = etree.parse(filename)
-	
 	datum = set(["ai", "onhit", "stats", "damage", "secondarybuff",
 		"resistances", "info", "palette"])
 
-	for mon in monsters.findall("monster"):
-		_monster = {}
-		# TODO: Monsters have variants. Parse those, too.
-		_monster["name"] = mon.attrib["name"]
-		for mondata in mon:
-			if (mondata.tag in datum):
-				_monster[mondata.tag] = [mondata.attrib]
+	def monster(mon):
+		# TODO: Figure out a way to recursively extract monster variants!
+		for mob in mon: 
+			monsterdata = {}
+			for mobdata in mob:
+				if (not monsterdata.has_key(mobdata.tag)):
+					if (mobdata.tag in datum):
+						monsterdata[mobdata.tag] = {}
+				
+				if (mobdata.tag in datum):
+					monsterdata[mobdata.tag].update(mobdata.attrib)
 
-		yield _monster
+			yield monsterdata
 
+	return monster(monsters.findall("monster"))
