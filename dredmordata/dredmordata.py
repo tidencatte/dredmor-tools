@@ -94,29 +94,33 @@ def crafts(filename):
 def items(filename):
     items = etree.parse(filename)
     bufftypes = set(["primarybuff", "secondarybuff", "resistbuff", "damagebuff"])
-    itemtypes = set(["food", "armour", "weapon"])
+    itemtypes = set(["food", "armour", "weapon", "mushroom", "potion", "gem", "trap", "wand"])
 
     for item in items.findall("item"):
         _item = defaultdict(dict)
         _item["name"] = item.attrib["name"]
         for attr in item:
             attrib = attr.attrib
+            if (item.attrib.get("alchemical", False) or item.attrib.get("craftoutput", False)):
+                _item["crafting"] = True
+
             if (attr.tag in itemtypes):
+                _item["type"] = attr.tag
                 # the categorization of items is a bit inconsistent
                 # armour has a subtype in the <armour> tag
                 # weapons (and other items?) have it in the <item> tag
-                if (attr.tag in ["armour", "weapon"]):
-                    _item["type"] = attr.tag
-                    # armour and weapon both have damage values
-                    # for resist and damage, respectively
-                    if (attr.tag == "weapon"):
-                        _item["damage"] = attrib
 
-                    elif (attr.tag == "armour"):
-                        _item["subtype"] = attrib["type"]
+                if (attr.tag == "weapon"):
+                    _item["damage"] = attrib
+
+                elif (attr.tag == "armour"):
+                    _item["subtype"] = attrib["type"]
 
                 elif (attr.tag == "food"):
                     _item["subtype"] = attrib.get("meat", None)
+
+                elif (attr.tag == "toolkit"):
+                    _item["subtype"] = attrib.get("tag", None)
 
             elif (attr.tag in bufftypes):
                 if (attr.tag == "primarybuff"):
